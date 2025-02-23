@@ -1,0 +1,7 @@
+INDEX VERSION 1.134
+E:\Programming\Java\.metadata\.plugins\org.eclipse.jst.jsp.core\jspsearch\1688465784.index
+\HelloWorld\src\main\java
+E:\Programming\Java\.metadata\.plugins\org.eclipse.jst.jsp.core\jspsearch\3558212379.index
+\Web\src\main\java
+E:\Programming\Java\.metadata\.plugins\org.eclipse.jst.jsp.core\jspsearch\2726448405.index
+\Exam\src\main\java

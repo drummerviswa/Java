@@ -1,0 +1,10 @@
+@charset "UTF-8";
+body{
+	background-color: crimson;
+}
+.container{
+	display:flex;
+	justify-content: center;
+	align-items: center;
+	text-align: center;
+}

@@ -1,0 +1,133 @@
+package com.sems;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Scanner;
+
+/*
+ 	* Contract period => L*3 + T*3 + P*3
+	* Total periods = Contact period *5 => * Credits 
+	* 
+*/
+public class SubjectManager {
+    private Connection con;
+	private static final String RESET = "\u001B[0m";
+	private static final String RED = "\u001B[91m";
+	private static final String GREEN  = "\u001B[92m";
+	private static final String PURPLE = "\u001B[95m";
+    public SubjectManager(Connection con) {
+        this.con = con;
+    }
+    String Sub_Code=null,Sub_Name=null,Sub_Type=null;
+    int Sem,Credits,L,T,P,Contract_Period,Total_Periods;
+    ArrayList<String> subjectslist = new ArrayList<String>();
+    Scanner scan = new Scanner(System.in);
+    public void createSubject() throws SQLException {
+        try (Statement s = con.createStatement();ResultSet subject= s.executeQuery("Select * from subjects");) {
+			System.out.println("Enter Subject Code: ");
+			Sub_Code=scan.next();
+			int i = 0;
+			while (subject.next()) {
+				subjectslist.add(subject.getString(1));
+				i++;
+			}
+			boolean subject_exist =false;
+			for (int j = 0; j < i; j++) {
+				if (Sub_Code.equals(subjectslist.get(j))) {
+					System.out.println(RED+"Subject Already Exist"+RESET);
+					subject_exist=true;
+				}
+			}
+			if(!subject_exist){
+				System.out.println("Enter Subject Name: ");
+				Sub_Name=scan.next();
+				System.out.println("Enter Semester: ");
+				Sem=scan.nextInt();
+				System.out.println("Enter Subject Type: ");
+				Sub_Type=scan.next();
+				System.out.println("Enter Lecture hours: ");
+				L=scan.nextInt();
+				System.out.println("Enter Tutorial hours: ");
+				T=scan.nextInt();
+				System.out.println("Enter Practical hours: ");
+				P=scan.nextInt();
+				System.out.println("Enter Credits of the Subject: ");
+				Credits=scan.nextInt();
+				Contract_Period=(L*3)+(T*3)+(P*3);
+				Total_Periods=Contract_Period*5;
+				try(PreparedStatement insert_subject = con.prepareStatement("Insert into Subjects values(?,?,?,?,?,?,?,?,?)");){
+				insert_subject.setString(1, Sub_Code);
+				insert_subject.setString(2, Sub_Name);
+				insert_subject.setInt(3, Sem);
+				insert_subject.setString(4, Sub_Type);
+				insert_subject.setInt(5, L);
+				insert_subject.setInt(6, T);
+				insert_subject.setInt(7, P);
+				insert_subject.setInt(8, Credits);
+				insert_subject.setInt(9, Total_Periods);
+				int rowsAffected = insert_subject.executeUpdate();
+                if (rowsAffected > 0) {
+                    System.out.println(GREEN+"Subjects Inserted successfully!"+RESET);
+                } else {
+                    System.out.println(RED+"Failed to Insert Subjects."+RESET);
+                }
+				subject_exist=true;
+				}
+			}
+		}
+    }
+
+    public void listSubjects() throws SQLException {
+        String query = "Select * from subjects";
+        try (Statement s = con.createStatement();	ResultSet subjects= s.executeQuery(query);) {
+			while(subjects.next()){
+					System.out.println();
+					System.out.println(PURPLE+"	Subject Code: "+subjects.getString(1)+RESET);
+					System.out.println("	Subject Name: "+subjects.getString(2));
+					System.out.println("	Semester: "+subjects.getString(3));
+					System.out.println("	Course Type: "+subjects.getString(4));
+					System.out.println("	Credits: "+subjects.getString(5));
+					System.out.println();
+				}
+    	}
+    }
+
+    // public void deleteSubject() throws SQLException {
+	// 	System.out.println("Enter subject code to delete:");
+	// 	String sc = scan.next();
+	// 	String q = "Select * from subjects";
+	// 	boolean subject_exist =false;
+	// 	try (Statement s = con.createStatement();	ResultSet subjects= s.executeQuery(q);) {
+	// 		while(subjects.next()){
+	// 				System.out.println();
+	// 				System.out.println(PURPLE+"	Subject Code: "+subjects.getString(1)+RESET);
+	// 				System.out.println("	Subject Name: "+subjects.getString(2));
+	// 				System.out.println("	Semester: "+subjects.getString(3));
+	// 				System.out.println("	Course Type: "+subjects.getString(4));
+	// 				System.out.println();
+	// 		}
+	// 		int i = 0;
+	// 		while (subjects.next()) {
+	// 			subjectslist.add(subjects.getString(1));
+	// 			i++;
+	// 		}
+	// 		for (int j = 0; j < i; j++) {
+	// 			if (sc.equals(subjectslist.get(j))) {
+	// 				subject_exist=true;
+	// 			}
+	// 		}
+	// 	}
+	// 	if(subject_exist){
+	// 		String query = "DELETE FROM subjects WHERE Sub_code = ?";
+	// 		try (PreparedStatement ps = con.prepareStatement(query)) {
+	// 			ps.setString(1, sc);
+	// 			int rowsAffected = ps.executeUpdate();
+	// 			if (rowsAffected > 0) {
+	// 				System.out.println(RESET+"Subject deleted successfully!"+RESET);
+	// 			} else {
+	// 				System.out.println(RESET+"Failed to delete subject."+RESET);
+	// 			}
+	// 		}
+	// 	}
+    // }
+}

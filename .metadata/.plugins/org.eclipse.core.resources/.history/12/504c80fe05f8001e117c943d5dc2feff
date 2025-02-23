@@ -1,0 +1,211 @@
+package com.sems;
+
+import java.util.Scanner;
+import java.sql.*;
+
+/*
+ * Staffs should be subject specific
+ */
+public class Db {
+	public static final String RESET = "\u001B[0m";
+	public static final String MENU = "\u001B[96m";
+	public static final String RED = "\u001B[91m";
+	public static final String SUBMENU = "\u001B[32m";
+	public static final String YELLOW = "\u001B[33m";
+	public static void clearScreen(){
+        try {
+            System.out.print("\033[H\033[2J");
+            System.out.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+	private static void Student(Scanner s,StudentManager stud,MarkManager mark) throws SQLException{
+		int option=0;
+		logout:
+		do {
+			System.out.print(SUBMENU+"Student Menu\n"
+					+ "1. View Details\n"
+					+ "2. View Results\n"
+					+ "3. Logout as Student\n"
+					+ "Enter your choice: "+RESET);
+			option=s.nextInt();
+			if(option!=0) {
+				switch(option) {
+					case 1:
+						System.out.println(YELLOW+"Enter your Register no: "+RESET);
+						int regno=s.nextInt();
+						stud.viewStudentsDetails(regno);
+						break;
+					case 2:
+						mark.viewResults();
+						break;
+					case 3:
+						System.out.println("Logging out......");
+						break logout;
+					default:
+						break;
+				}
+			}
+		}while(option!=3);
+	}
+	private static void Staff(Scanner s,StudentManager stud,MarkManager mark,SubjectManager sub)throws SQLException{
+		int option=0;
+		logout:
+			do {
+				System.out.print(SUBMENU+"Staff Menu\n"
+						+ "1. Insert Marks\n"
+						+ "2. Update Marks\n"
+						+ "3. View Marks\n"
+						+ "4. Delete Marks\n"
+						+ "5. Update Attendance\n"
+						+ "6. Logout as Student"
+						+ "Enter your choice: "+RESET);
+				option=s.nextInt();
+				if(option!=0) {
+					switch(option) {
+						case 1:
+							mark.enterResults();
+							break;
+						case 2:
+							mark.updateResults();
+							break;
+						case 3:
+							mark.viewResults();
+							break;
+						case 4:
+							mark.deleteResults();
+							break;
+						case 5:
+							mark.updateAttendance();
+							break;
+						case 6:
+							System.out.println("Logging out....");
+							break logout;
+						default:
+							break;
+					}
+				}
+			}while(option!=6);
+	}
+	public static void main(String[] args) {
+		try {
+			DatabaseConnector db = new DatabaseConnector();
+			Connection con =  db.getConnection();
+            StudentManager studentManager = new StudentManager(con);
+            SubjectManager subjectManager = new SubjectManager(con);
+            MarkManager markManager = new MarkManager(con);
+            try (Scanner s = new Scanner(System.in)) {
+				int option;
+				do {
+					System.out.print(MENU+"Welcome to the Mini Sems Project\n"+
+							"1. Student\n"+
+							"2. Staff\n"+
+							"3. Admin\n"+
+							"4. Exit\n"+
+							"Enter your option: "+RESET);
+					option=s.nextInt();
+					switch(option) {
+						case 1:
+							Student(s, studentManager, markManager);
+							break;
+						case 2:
+							Staff(s,studentManager,markManager,subjectManager);
+							break;
+						case 3:
+							//Admin();
+							break;
+						default:
+							System.out.println("Invalid option - You should be student or staff or admin");
+							break;
+					}
+				}while(option!=3);
+            }
+		}catch(SQLException e) {
+			System.out.println("Error: "+e);
+		}
+	}
+    /*public static void main(String[] args) {
+    	try {
+			DatabaseConnector db = new DatabaseConnector();
+			Connection con =  db.getConnection();
+            StudentManager studentManager = new StudentManager(con);
+            SubjectManager subjectManager = new SubjectManager(con);
+            MarkManager markManager = new MarkManager(con);
+            try (Scanner s = new Scanner(System.in)) {
+				int option;
+				do {
+				    System.out.print(MENU+"Welcome to the Mini Sems Project\n"+
+				            "1. Enter results for a student\n" +
+				            "2. Update results for a student\n" +
+				            "3. View the results for a student\n" +
+				            "4. Delete the results for a student\n" +
+				            "5. Create a student\n" +
+				            "6. View all Students\n" +
+				            "7. Update Student Details\n" +
+							"8. Delete Student Details\n"+
+				            "9. Create a Subject\n" +
+				            "10. List of Subjects\n" +
+				            "11. Exit\n" +
+				            "Enter an option: "+RESET);
+				    option = s.nextInt();
+				    switch (option) {
+				        case 1:
+							clearScreen();
+				            markManager.enterResults();
+				            break;
+				        case 2:
+							clearScreen();
+				            markManager.updateResults();
+				            break;
+				        case 3:
+							clearScreen();
+				            markManager.viewResults();
+				            break;
+				        case 4:
+							clearScreen();
+				            markManager.deleteResults();
+				            break;
+				        case 5:
+							clearScreen();
+				            studentManager.createStudent();
+				            break;
+				        case 6:
+							clearScreen();
+				            studentManager.viewAllStudents();
+				            break;
+				        case 7:
+							clearScreen();
+				            studentManager.updateStudentDetails();
+				            break;
+						case 8:
+							clearScreen();
+							studentManager.deleteStudent();
+							break;
+				        case 9:
+							clearScreen();
+				            subjectManager.createSubject();
+				            break;
+				        case 10:
+							clearScreen();
+				            subjectManager.listSubjects();
+				            break;
+				        case 11:
+							clearScreen();
+				            System.out.println("Exiting...");
+				            break;
+				        default:
+							clearScreen();
+				            System.out.println(RED+"Invalid option! Please enter a valid option."+RESET);
+				    }
+				} while (option != 11);
+			}
+            finally {
+            	con.close();            	
+            }
+        } catch (SQLException e) {
+        	System.out.println(RED+"Error: " + e.getMessage()+RESET);
+        }
+    }
+    */
+}

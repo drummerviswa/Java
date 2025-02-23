@@ -1,0 +1,26 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+</head>
+<body>
+	<%
+		String email = request.getParameter("email").trim();
+		String password = request.getParameter("password").trim();
+		String dEmail = "drummerviswa@gmail.com";
+		String dPassword = "Viswa@123";
+		boolean f = false;
+		if(email.equals(dEmail)&&email!=null&&password.equals(dPassword)&&password!=null){
+			f=true;
+		}
+		if(f){		
+	%>
+		<h1>Login Successful</h1>
+	<%}else{%>
+		<h1>Login Failed</h1>
+	<%}%>
+</body>
+</html>

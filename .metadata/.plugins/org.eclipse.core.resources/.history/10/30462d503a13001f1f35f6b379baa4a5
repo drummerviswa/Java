@@ -1,0 +1,17 @@
+@charset "UTF-8";
+body{
+	background-color: crimson;
+}
+.container{
+	flex:1;
+	justify-content: center;
+	align-items: center;
+}
+.form{
+	flex:1;
+	justify-content: center;
+	align-items: center;
+}
+.field{
+	border-radius: 20px;
+}

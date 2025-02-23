@@ -1,0 +1,211 @@
+package com.sems;
+
+import java.util.Scanner;
+import java.sql.*;
+
+/*
+ * Staffs should be subject specific
+ */
+public class Db {
+	public static final String RESET = "\u001B[0m";
+	public static final String MENU = "\u001B[96m";
+	public static final String RED = "\u001B[91m";
+	public static final String SUBMENU = "\u001B[32m";
+	public static final String YELLOW = "\u001B[33m";
+	public static void clearScreen(){
+        try {
+            System.out.print("\033[H\033[2J");
+            System.out.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+	private static void Student(Scanner s,StudentManager stud,MarkManager mark) throws SQLException{
+		int option=0;
+		logout:
+		do {
+			System.out.print(SUBMENU+"Student Menu\n"
+					+ "1. View Details\n"
+					+ "2. View Results\n"
+					+ "3. Logout as Student\n"
+					+ "Enter your choice: "+RESET);
+			option=s.nextInt();
+			if(option!=0) {
+				switch(option) {
+					case 1:
+						System.out.println(YELLOW+"Enter your Register no: "+RESET);
+						int regno=s.nextInt();
+						stud.viewStudentsDetails(regno);
+						break;
+					case 2:
+						mark.viewResults();
+						break;
+					case 3:
+						System.out.println("Logging out......");
+						break logout;
+					default:
+						break;
+				}
+			}
+		}while(option!=3);
+	}
+	private static void Admin(Scanner s,StudentManager stud,MarkManager mark,SubjectManager sub) throws SQLException{
+		int option=0;
+		logout:
+			do {
+				System.out.print(SUBMENU+"Admin Menu\n"
+						+ "1. Insert Marks\n"
+						+ "2. Update Marks\n"
+						+ "3. View Marks\n"
+						+ "4. Delete Marks\n"
+						+ "5. Update Attendance\n"
+						+ "6. Add Student\n"
+						+ "7. Update Student Details\n"
+						+ "8. Delete Student\n"
+						+ "9. View All Students\n"
+						+ "10. View Student's Details\n"
+						+ "11. Add Subject\n"
+						+ "12. Update Subject\n"
+						+ "13. Delete Subject\n"
+						+ "14. View All Subjects by Semester\n"
+						+ "15. View All Subjects\n"
+						+ "16. Logout as Student"
+						+ "Enter your choice: "+RESET);
+				option=s.nextInt();
+				if(option!=0) {
+					switch(option) {
+						case 1:
+							mark.enterResults();
+							break;
+						case 2:
+							mark.updateResults();
+							break;
+						case 3:
+							mark.viewResults();
+							break;
+						case 4:
+							mark.deleteResults();
+							break;
+						case 5:
+							mark.updateAttendance();
+							break;
+						case 6:
+							stud.createStudent();
+							break;
+						case 7:
+							stud.updateStudentDetails();
+							break;
+						case 8:
+							stud.deleteStudent();
+							break;
+						case 9:
+							stud.viewAllStudents();
+							break;
+						case 10:
+							int regno;
+							System.out.println("Enter Register no: ");
+							regno=s.nextInt();
+							stud.viewStudentsDetails(regno);
+							break;
+						case 11:
+							sub.createSubject();
+							break;
+						case 12:
+							sub.updateSubject();
+							break;
+						case 13:
+							break;
+						case 14:
+							sub.listSubjectsBySem();
+							break;
+						case 15:
+							sub.listSubjects();
+							break;
+						case 16:
+							System.out.println("Logging out....");
+							break logout;
+						default:
+							break;
+					}
+				}
+			}while(option!=16);
+	}
+	private static void Staff(Scanner s,StudentManager stud,MarkManager mark,SubjectManager sub,StaffMarkManager smm)throws SQLException{
+		int option=0;
+		String sj=smm.selectSubjects();
+		logout:
+			do {
+				System.out.print(SUBMENU+"Staff Menu\n"
+						+ "1. Insert Marks\n"
+						+ "2. Update Marks\n"
+						+ "3. View Marks\n"
+						+ "4. Delete Marks\n"
+						+ "5. Update Attendance\n"
+						+ "6. Logout as Student\n"
+						+ "Enter your choice: "+RESET);
+				option=s.nextInt();
+				if(option!=0) {
+					switch(option) {
+						case 1:
+							smm.insertResult(sj);
+							break;
+						case 2:
+							smm.updateResult(sj);
+							break;
+						case 3:
+							mark.viewResults();
+							break;
+						case 4:
+							mark.deleteResults();
+							break;
+						case 5:
+							mark.updateAttendance();
+							break;
+						case 6:
+							System.out.println("Logging out....");
+							break logout;
+						default:
+							break;
+					}
+				}
+			}while(option!=6);
+	}
+	public static void main(String[] args) {
+		try {
+			DatabaseConnector db = new DatabaseConnector();
+			Connection con =  db.getConnection();
+            StudentManager studentManager = new StudentManager(con);
+            SubjectManager subjectManager = new SubjectManager(con);
+            MarkManager markManager = new MarkManager(con);
+            StaffMarkManager smm = new StaffMarkManager(con);
+            try (Scanner s = new Scanner(System.in)) {
+				int option;
+				do {
+					System.out.print(MENU+"Welcome to the Mini Sems Project\n"+
+							"1. Student\n"+
+							"2. Staff\n"+
+							"3. Admin\n"+
+							"4. Exit\n"+
+							"Enter your option: "+RESET);
+					option=s.nextInt();
+					switch(option) {
+						case 1:
+							Student(s, studentManager, markManager);
+							break;
+						case 2:
+							Staff(s,studentManager,markManager,subjectManager,smm);
+							break;
+						case 3:
+							Admin(s,studentManager,markManager,subjectManager);
+							break;
+						default:
+							System.out.println("Invalid option - You should be student or staff or admin");
+							break;
+					}
+				}while(option!=3);
+            }
+		}catch(SQLException e) {
+			System.out.println("Error: "+e);
+		}
+	}
+}

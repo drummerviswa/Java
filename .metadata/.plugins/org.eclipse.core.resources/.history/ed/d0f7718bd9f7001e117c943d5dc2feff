@@ -1,0 +1,449 @@
+
+package com.sems;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
+
+/*
+
+	* Internal mark calculation Assess1+Assess2 => /2 => 40%
+	* Attendance based on credits
+	* Grade for S/A RA/U -
+	* If Total periods >60 only we have to get the Attendance 3
+	* If the subject is lab => We have to get only the Attendance 2
+	* 
+
+*/
+public class MarkManager {
+    private Connection con;
+	private static final String RESET = "\u001B[0m";
+	private static final String RED = "\u001B[91m";
+	private static final String GREEN  = "\u001B[92m";
+	private static final String PURPLE = "\u001B[95m";
+	private static final String CYAN   = "\u001B[96m";
+    int attend_1, attend_2, attend_3, Assess_1, Assess_2, Assess_3,Sem,
+	Total_Attend, Total_Internal, End_Sem, Total,regno,so,semester;
+    float Max_Attend;
+    String sj = "", grade;
+    ArrayList<Integer> temprno = new ArrayList<Integer>();
+	ArrayList<String> subjectListbySem = new ArrayList<String>();
+    public MarkManager(Connection con) {
+        this.con = con;
+    }
+    private static String grading(int t) {
+		String g = "";
+		if (t > 91 && t <= 100)
+			g = "O";
+		else if (t > 81 && t <= 90)
+			g = "A+";
+		else if (t > 71 && t <= 80)
+			g = "A";
+		else if (t > 61 && t <= 70)
+			g = "B+";
+		else if (t > 51 && t <= 60)
+			g = "B";
+		else if (t > 51 && t <= 60)
+			g = "C";
+		return g;
+
+	}
+	private ArrayList<String> getSubjectsBySemester(int semester) throws SQLException {
+        ArrayList<String> subjectsList = new ArrayList<>();
+        String query = "SELECT Sub_Code, Sub_Name FROM subjects WHERE Semester = ?";
+
+        try (PreparedStatement ps = con.prepareStatement(query)) {
+            ps.setInt(1, semester);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                String subCode = rs.getString("Sub_Code");
+                String subName = rs.getString("Sub_Name");
+                subjectsList.add(subCode + " - " + subName);
+            }
+        }
+
+        return subjectsList;
+    }
+
+	public String selectSubject(int semester) throws SQLException {
+        ArrayList<String> subjectsList = getSubjectsBySemester(semester);
+
+        if (subjectsList.isEmpty()) {
+            System.out.println("No subjects found for semester " + semester);
+            return null;
+        }
+
+        System.out.println("Subjects list for Semester " + semester + ":");
+        Map<Integer, String> subjectMap = new HashMap<>();
+        int subjectNumber = 1;
+        for (String subject : subjectsList) {
+            System.out.println(subjectNumber + ". " + subject);
+            subjectMap.put(subjectNumber, subject.split(" - ")[0]);
+            subjectNumber++;
+        }
+
+        System.out.print("Enter the subject number (1-" + subjectsList.size() + "): ");
+        int selectedSubjectIndex = scan.nextInt();
+
+        if (selectedSubjectIndex < 1 || selectedSubjectIndex > subjectsList.size()) {
+            System.out.println("Invalid subject selection.");
+            return null;
+        }
+
+        String selectedSubjectCode = subjectMap.get(selectedSubjectIndex);
+        System.out.println("You selected: " + subjectsList.get(selectedSubjectIndex - 1));
+
+        return selectedSubjectCode;
+    }
+	public static int validate(int a){
+		int num=0;
+		if(a>=0&&a<=100)
+			num=a;
+		else
+			System.out.println(RED+"Number is not between range, so number is taken as 0"+RESET);
+		return num;
+	}
+	public static int calculateInternal(int a1,int a2,int a3,int credit) {
+		switch(credit) {
+			case 2:
+				return  (int)(a2*0.6);
+			case 3|4|5:
+				return ((a1+a2)/2)*(40/100);
+			default:
+				return (a1+a2+a3)/3;
+		}
+	}
+	private int getCredits(String subject) throws SQLException{
+		int c=0;
+		String query = "SELECT * FROM subjects WHERE Sub_Code = ?";
+	    
+	    try (PreparedStatement statement = con.prepareStatement(query)) {
+	        statement.setString(1, subject);
+	        
+	        try (ResultSet resultSet = statement.executeQuery()) {
+	            if (resultSet.next()) {
+	                c = resultSet.getInt("Credits");
+	            }
+	        }
+	    }
+	    return c;
+	}
+	private int getTotalPeriods(String subject) throws SQLException{
+		int p=0;
+		String query = "SELECT * FROM subjects WHERE Sub_Code = ?";
+	    
+	    try (PreparedStatement statement = con.prepareStatement(query)) {
+	        statement.setString(1, subject);
+	        
+	        try (ResultSet resultSet = statement.executeQuery()) {
+	            if (resultSet.next()) {
+	                p = resultSet.getInt("Total_Periods");
+	            }
+	        }
+	    }
+	    return p;
+	}
+	private int calculateEndSem(int b,int c) {
+		switch(c) {
+			case 2:
+				return (int)(b*0.4);
+			default:
+				return (int)(b*0.6);
+		}
+	}
+    Scanner scan = new Scanner(System.in);
+    public void enterResults() throws SQLException {
+    	String query = "select * from student_register";
+        try (Statement s = con.createStatement();ResultSet student_register = s.executeQuery(query);Statement s1 = con.createStatement();) {
+			System.out.println("Enter the register no: ");
+			regno = scan.nextInt();
+			int i = 0;
+			while (student_register.next()) {
+				temprno.add(student_register.getInt(1));
+				i++;
+			}
+			boolean student_exist = false;
+			creating:
+			for (int j = 0; j < i; j++) {
+				if (regno == temprno.get(j)) {
+						student_exist=true;
+						System.out.println(GREEN+"Stduent Exist"+RESET);
+						ResultSet name = s.executeQuery("select * from student_register where Reg_no=" + regno);
+						while (name.next()){
+							System.out.println("You are entering marks for " + CYAN+name.getString(2)+RESET);
+							semester=name.getInt(9);
+						}
+						ResultSet mar = s1.executeQuery("select * from marks where Regno="+regno);
+						sj=selectSubject(semester);
+						if(sj!=null){
+							while(mar.next()) {
+								if(sj.equals(mar.getString(3))) {
+									System.out.println(RED+"Subject Marks already found"+RESET);
+									break creating;
+								}
+							}
+							int credits = getCredits(sj);
+							int tp = getTotalPeriods(sj);
+							System.out.println("TP: "+tp);
+							/*
+							 * Criteria for Attendance
+							 * if lab == only A2/Max
+							 * if theory cum lab == A1+A2/2 /Max
+							 * if theory cum lab cum tutorial == A1+A2+A3/3 /Max
+							 */
+							switch(credits) {
+								case 2:
+									System.out.println("Enter Attendance 2 [/60]: ");
+									attend_2 = scan.nextInt();
+									System.out.println("Enter Assessment 2 marks: (100)");
+									Assess_2 = validate(scan.nextInt());
+									System.out.println("attend_2: " + attend_2);
+									System.out.println("tp: " + tp);
+									Max_Attend = attend_2;
+									System.out.println("MA: " + Max_Attend);
+									Total_Attend=(int)(Max_Attend*100);
+									break;
+								case 3:
+									System.out.println("Enter Attendance 1: ");
+									attend_1 = scan.nextInt();
+									System.out.println("Enter Attendance 2: ");
+									attend_2 = scan.nextInt();
+									System.out.println("Enter Assessment 1 marks: (100)");
+									Assess_1 = validate(scan.nextInt());
+									System.out.println("Enter Assessment 2 marks: (100)");
+									Assess_2 = validate(scan.nextInt());
+									Max_Attend = (attend_1+attend_2);
+									Total_Attend=(int)(Max_Attend*100);
+									break;
+								case 4:
+									System.out.println("Enter Attendance 1: ");
+									attend_1 = scan.nextInt();
+									System.out.println("Enter Attendance 2: ");
+									attend_2 = scan.nextInt();
+									System.out.println("Enter Assessment 1 marks: (100)");
+									Assess_1 = validate(scan.nextInt());
+									System.out.println("Enter Assessment 2 marks: (100)");
+									Assess_2 = validate(scan.nextInt());
+									Max_Attend = (attend_1+attend_2);
+									Total_Attend=(int)(Max_Attend*100);
+									break;
+								default:
+									System.out.println("Enter Attendance 1: ");
+									attend_1 = scan.nextInt();
+									System.out.println("Enter Attendance 2: ");
+									attend_2 = scan.nextInt();
+									System.out.println("Enter Attendance :  ");
+									attend_3 = validate(scan.nextInt());
+									System.out.println("Enter Assessment 1 marks: (100)");
+									Assess_1 = validate(scan.nextInt());
+									System.out.println("Enter Assessment 2 marks: (100)");
+									Assess_2 = validate(scan.nextInt());
+									System.out.println("Enter Assessment 3 marks: (100)");
+									Assess_3 = validate(scan.nextInt());
+									Max_Attend = attend_1+attend_2+attend_3;
+									Total_Attend=(int)(Max_Attend*100);
+							}
+							Total_Internal = calculateInternal(Assess_1,Assess_2,Assess_3,credits);
+							System.out.println("Enter End-Sem marks: ");
+							End_Sem = validate(scan.nextInt());
+							End_Sem = calculateEndSem(End_Sem, credits);
+							Total = Total_Internal+End_Sem;
+							grade = grading(Total);
+							String insert_marks_query = "Insert into marks(`Regno`, `Sub_code`, `Attend_1`, `Attend_2`, `Attend_3`, `Assess_1`, `Assess_2`, `Assess_3`, `Max_Attend`, `Total_Attend`, `Total_Internal`, `End_Sem`, `Total`, `Grade`)"
+									+ "values(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+							try(PreparedStatement insert_Marks = con.prepareStatement(insert_marks_query);){
+							insert_Marks.setInt(1, regno);
+							insert_Marks.setString(2, sj);
+							insert_Marks.setInt(3, attend_1);
+							insert_Marks.setInt(4, attend_2);
+							insert_Marks.setInt(5, attend_3);
+							insert_Marks.setInt(6, Assess_1);
+							insert_Marks.setInt(7, Assess_2);
+							insert_Marks.setInt(8, Assess_3);
+							insert_Marks.setFloat(9, Max_Attend);
+							insert_Marks.setInt(10, Total_Attend);
+							insert_Marks.setInt(11, Total_Internal);
+							insert_Marks.setInt(12, End_Sem);
+							insert_Marks.setInt(13, Total);
+							insert_Marks.setString(14, grade);
+							int rowsAffected = insert_Marks.executeUpdate();
+							if (rowsAffected > 0) {
+								System.out.println(GREEN+"Results Inserted successfully!"+RESET);
+							} else {
+								System.out.println(RED+"Failed to Insert Results."+RESET);
+							}
+							}
+						}
+					}
+				}
+			if (!student_exist)
+				System.out.print(RED+"Register Number not found!!!\n\n\n"+RESET);
+        }
+    }
+
+    public void updateResults() throws SQLException {
+    	String query = "select * from student_register";
+    	try (Statement s = con.createStatement();ResultSet student_register = s.executeQuery(query);) {
+        	System.out.println("Enter Register no: ");
+			regno = scan.nextInt();
+			int i = 0;
+			while (student_register.next()) {
+				temprno.add(student_register.getInt(1));
+				i++;
+			}
+			boolean student_exist = false;
+			for (int j = 0; j < i; j++) {
+				if (regno == temprno.get(j)) {
+					student_exist=true;
+					System.out.println("Student Exist\n");
+					ResultSet name = s.executeQuery("select * from student_register where Reg_no=" + regno);
+					while (name.next()){
+						System.out.println("Hello!! " + CYAN+name.getString(2)+RESET);
+						semester=name.getInt(9);
+						sj=selectSubject(semester);
+						ResultSet particularStudentmarks = s.executeQuery("Select * from marks where Regno=" + regno);
+						particularStudentmarks.next();
+						System.out.println("Enter Assessment 1 marks(" + particularStudentmarks.getString(7) + ")(100): ");
+						Assess_1 = validate(scan.nextInt());
+						 System.out.println(
+						 		"Enter Assessment 2 marks(" + particularStudentmarks.getInt(8) + ")(100): ");
+						 Assess_2 = validate(scan.nextInt());
+						 System.out.println(
+						 		"Enter Assessment 3 marks(" + particularStudentmarks.getInt(9) + ")(100): ");
+						 Assess_3 = validate(scan.nextInt());
+						 System.out.println(
+						 		"Enter Total Internal marks(" + particularStudentmarks.getInt(14) + "): ");
+						 Total_Internal = scan.nextInt();
+						 System.out
+						 		.println("Enter End-Sem marks(" + particularStudentmarks.getInt(15) + "): ");
+						 End_Sem = validate(scan.nextInt());
+						 Total = (int) (End_Sem * 0.6) + Total_Internal;
+						 grade = grading(Total);
+						 String update_marks_query = "Update marks set Assess_1=?,Assess_2=?,Assess_3=?,Total_Internal=?,End_Sem=?,Total=?,Grade=?";
+						 PreparedStatement update_Marks = con.prepareStatement(update_marks_query);
+						 update_Marks.setInt(1, Assess_1);
+						 update_Marks.setInt(2, Assess_2);
+						 update_Marks.setInt(3, Assess_3);
+						 update_Marks.setInt(4, Total_Internal);
+						 update_Marks.setInt(5, End_Sem);
+						 update_Marks.setInt(6, Total);
+						 update_Marks.setString(7, grade);
+						 int rowsAffected = update_Marks.executeUpdate();
+		                if (rowsAffected > 0) {
+		                    System.out.println(GREEN+"Marks Updated successfully!"+RESET);
+		                } else {
+		                    System.out.println(RED+"Failed to Update Results."+RESET);
+		                }
+						}
+				}
+			}
+			if (!student_exist)
+				System.out.print(RED+"Register Number not found!!!\n\n\n"+RESET);
+        }
+    }
+
+    public void viewResults() throws SQLException {
+    	String query = "select * from student_register";
+        try (Statement s = con.createStatement();Statement s1 = con.createStatement();ResultSet student_register = s.executeQuery(query);) {
+        	System.out.println("Enter Register no: ");
+			regno = scan.nextInt();
+			int i = 0;
+			while (student_register.next()) {
+				temprno.add(student_register.getInt(1));
+				i++;
+			}
+			boolean student_exist =false;
+			for (int j = 0; j < i; j++) {
+				if (regno == temprno.get(j)) {
+					student_exist=true;
+					ResultSet name_marks = s1.executeQuery("select * from student_register where Reg_no=" + regno);
+					ResultSet marks = s.executeQuery("select * from marks where Regno="+regno);
+					while (name_marks.next()) {
+						System.out.println(PURPLE+"Results of: "+name_marks.getString(2)+RESET);
+					}
+					while(marks.next()){
+						System.out.println();
+						try(ResultSet subject_mark = s1.executeQuery("Select * from subjects where Sub_Code='"+marks.getString(3)+"'");){
+						while(subject_mark.next())
+						System.out.println(CYAN+"Subject: "+PURPLE+subject_mark.getString(2));
+						System.out.println(CYAN+"Subject Code: "+PURPLE+marks.getString(3)+RESET);
+						System.out.println();
+						System.out.println("	Assess-1: "+marks.getString(7));
+						System.out.println("	Assess-2: "+marks.getString(8));
+						System.out.println("	Assess-3: "+marks.getString(9));
+						System.out.println("	Internal: "+marks.getString(14));
+						System.out.println("	End Semester: "+marks.getString(15));
+						System.out.println("	Total: "+marks.getString(16));
+						System.out.println("	Grade: "+marks.getString(17));
+						System.out.println();
+						System.out.println();
+						}
+					}
+				}
+			}
+			if (!student_exist)
+				System.out.print(RED+"Register Number not found!!!\n\n\n"+RESET);
+        }
+    }
+
+    public void deleteResults() throws SQLException {
+    	String query = "select * from student_register";
+    	try (Statement s = con.createStatement();Statement s1 = con.createStatement();Statement s2 = con.createStatement();ResultSet student_register = s.executeQuery(query);) {
+        	System.out.println("Enter Register no: ");
+			regno = scan.nextInt();
+			int i = 0;
+			while (student_register.next()) {
+				temprno.add(student_register.getInt(1));
+				i++;
+			}
+			boolean student_exist=false;
+			for (int j = 0; j < i; j++) {
+				if (regno == temprno.get(j)) {
+					ResultSet name_marks = s1.executeQuery("select * from student_register where Reg_no=" + regno);
+					ResultSet marks = s.executeQuery("select * from marks where Regno="+regno);
+					ResultSet mark = s2.executeQuery("select * from marks where Regno="+regno);
+					while (name_marks.next()) {
+						System.out.println("Results of: "+name_marks.getString(2));
+					}
+					while(marks.next()){
+						System.out.println();
+						ResultSet subject_mark = s1.executeQuery("Select * from subjects where Sub_Code='"+marks.getString(3)+"'");
+						System.out.println(PURPLE+"	Mark ID: "+marks.getString(1)+RESET);
+						while(subject_mark.next())
+						System.out.println(PURPLE+"	Subject: "+subject_mark.getString(2)+RESET);
+						System.out.println();
+						System.out.println("	Assess-1: "+marks.getString(7));
+						System.out.println("	Assess-2: "+marks.getString(8));
+						System.out.println("	Assess-3: "+marks.getString(9));
+						System.out.println("	Internal: "+marks.getString(14));
+						System.out.println("	End Semester: "+marks.getString(15));
+						System.out.println("	Total: "+marks.getString(16));
+						System.out.println("	Grade: "+marks.getString(17));
+						System.out.println();
+						System.out.println();
+					}
+					System.out.println("Enter the Mark ID you want to Delete Marks: ");
+					String mid = scan.next();
+					while(mark.next()){
+						if(mid.equals(mark.getString(1))){
+							try(PreparedStatement delete_Marks = con.prepareStatement("DELETE FROM marks WHERE Marks_ID="+mid);){
+								int rowsAffected = delete_Marks.executeUpdate();
+								if (rowsAffected > 0) {
+									System.out.println(GREEN+"Results Inserted successfully!"+RESET);
+								} else {
+									System.out.println(RED+"Failed to Insert Results."+RESET);
+								}
+							}
+						}
+					}
+						student_exist=true;
+					}
+				}
+				if (!student_exist)
+					System.out.print(RED+"Register Number not found!!!\n\n\n"+RESET);
+        }
+    }
+}
