@@ -1,0 +1,91 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page import="java.sql.*, java.util.*" %>
+<%
+    String DB_URL = "jdbc:mysql://localhost:3306/computer_components_db?allowPublicKeyRetrieval=true&useSSL=false";
+    String DB_USER = "root";
+    String DB_PASSWORD = "21679";
+
+    Class.forName("com.mysql.cj.jdbc.Driver");
+    Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+
+    int id = Integer.parseInt(request.getParameter("id"));
+    String sql = "SELECT id, name, type, price FROM components WHERE id = ?";
+    PreparedStatement pstmt = conn.prepareStatement(sql);
+    pstmt.setInt(1, id);
+    ResultSet rs = pstmt.executeQuery();
+    rs.next();
+    String name = rs.getString("name");
+    String type = rs.getString("type");
+    double price = rs.getDouble("price");
+    rs.close();
+    pstmt.close();
+    conn.close();
+%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Component</title>
+     <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+        }
+        form {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"] {
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            align-self: center;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Edit Component</h1>
+        <form action="index.jsp" method="post">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" value="<%= name %>" required>
+            <label for="type">Type:</label>
+            <input type="text" id="type" name="type" value="<%= type %>" required>
+            <label for="price">Price:</label>
+            <input type="number" id="price" name="price" value="<%= price %>" required>
+            <input type="hidden" name="id" value="<%= id %>">
+            <input type="hidden" name="action" value="update">
+            <button type="submit">Update Component</button>
+        </form>
+    </div>
+</body>
+</html>

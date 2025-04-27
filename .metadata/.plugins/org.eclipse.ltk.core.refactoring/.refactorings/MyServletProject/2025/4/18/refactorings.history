@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename type &apos;com.example.servlets.MyServlet&apos; to &apos;ComponentServlet&apos;&#x0D;&#x0A;- Original project: &apos;MyServletProject&apos;&#x0D;&#x0A;- Original element: &apos;com.example.servlets.MyServlet&apos;&#x0D;&#x0A;- Renamed element: &apos;com.example.servlets.ComponentServlet&apos;&#x0D;&#x0A;- Update references to refactored element&#x0D;&#x0A;- Update textual occurrences in comments and strings" description="Rename type &apos;MyServlet&apos;" flags="589830" id="org.eclipse.jdt.ui.rename.type" input="/src\/main\/java&lt;com.example.servlets{MyServlet.java[MyServlet" matchStrategy="1" name="ComponentServlet" qualified="false" references="true" similarDeclarations="false" stamp="1745765572515" textual="false" version="1.0"/>
+</session>

@@ -1,0 +1,307 @@
+package com.example.servlets;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+public class ComponentServlet extends HttpServlet {
+
+    // Database connection details
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/computer_components_db";
+    private static final String DB_USER = "viswa";
+    private static final String DB_PASSWORD = "21679"; // Change if you have a database password
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("text/html;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            String action = request.getParameter("action");
+
+            if (action == null || action.isEmpty()) {
+                listComponents(conn, out);
+            } else if (action.equals("edit")) {
+                showEditForm(request, response, conn, out);
+            } else if (action.equals("delete")) {
+                deleteComponent(request, response, conn, out);
+            } else if (action.equals("add")) {
+                showAddComponentForm(request, response, out);
+            }
+
+            conn.close();
+
+        } catch (ClassNotFoundException | SQLException e) {
+            out.println("<html><body>");
+            out.println("<h1>Error</h1>");
+            out.println("<p>Error: " + e.getMessage() + "</p>");
+            out.println("</body></html>");
+        }
+    }
+
+    private void showAddComponentForm(HttpServletRequest request, HttpServletResponse response, PrintWriter out) throws IOException {
+        out.println("<!DOCTYPE html>");
+        out.println("<html lang=\"en\">");
+        out.println("<head>");
+        out.println("    <meta charset=\"UTF-8\">");
+        out.println("    <title>Add Component</title>");
+        out.println("    <style>");
+        out.println("       body { font-family: sans-serif; background-color: #f0f0f0; }");
+        out.println("       h1 { text-align: center; margin-top: 20px; }");
+        out.println("       form { margin: 20px auto; width: 60%; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }");
+        out.println("       label { display: block; margin-bottom: 5px; }");
+        out.println("       input[type=\"text\"], input[type=\"number\"] { width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }");
+        out.println("       button { background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; }");
+        out.println("       button:hover { background-color: #45a049; }");
+        out.println("    </style>");
+        out.println("</head>");
+        out.println("<body>");
+        out.println("    <h1>Add New Component</h1>");
+        out.println("    <form action=\"components\" method=\"post\">");
+        out.println("        <label for=\"name\">Name:</label>");
+        out.println("        <input type=\"text\" id=\"name\" name=\"name\" required>");
+        out.println("        <label for=\"type\">Type:</label>");
+        out.println("        <input type=\"text\" id=\"type\" name=\"type\" required>");
+        out.println("        <label for=\"price\">Price:</label>");
+        out.println("        <input type=\"number\" id=\"price\" name=\"price\" required>");
+        out.println("        <button type=\"submit\">Add Component</button>");
+        out.println("        <input type=\"hidden\" name=\"action\" value=\"create\">");
+        out.println("    </form>");
+        out.println("</body>");
+        out.println("</html>");
+
+    }
+
+    private void deleteComponent(HttpServletRequest request, HttpServletResponse response, Connection conn, PrintWriter out) throws SQLException, IOException {
+        int id = Integer.parseInt(request.getParameter("id"));
+
+        String sql = "DELETE FROM components WHERE id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setInt(1, id);
+        pstmt.executeUpdate();
+        pstmt.close();
+
+        response.sendRedirect("components"); // Redirect to the main page
+    }
+
+    private void showEditForm(HttpServletRequest request, HttpServletResponse response, Connection conn, PrintWriter out) throws SQLException, IOException {
+        int id = Integer.parseInt(request.getParameter("id"));
+
+        String sql = "SELECT id, name, type, price FROM components WHERE id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setInt(1, id);
+        ResultSet rs = pstmt.executeQuery();
+
+        if (rs.next()) {
+            String name = rs.getString("name");
+            String type = rs.getString("type");
+            double price = rs.getDouble("price");
+
+            out.println("<!DOCTYPE html>");
+            out.println("<html lang=\"en\">");
+            out.println("<head>");
+            out.println("    <meta charset=\"UTF-8\">");
+            out.println("    <title>Edit Component</title>");
+            out.println("    <style>");
+            out.println("       body { font-family: sans-serif; background-color: #f0f0f0; }");
+            out.println("       h1 { text-align: center; margin-top: 20px; }");
+            out.println("       form { margin: 20px auto; width: 60%; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }");
+            out.println("       label { display: block; margin-bottom: 5px; }");
+            out.println("       input[type=\"text\"], input[type=\"number\"] { width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }");
+            out.println("       button { background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; }");
+            out.println("       button:hover { background-color: #45a049; }");
+            out.println("    </style>");
+            out.println("</head>");
+            out.println("<body>");
+            out.println("    <h1>Edit Component</h1>");
+            out.println("    <form action=\"components\" method=\"post\">");
+            out.println("        <label for=\"name\">Name:</label>");
+            out.println("        <input type=\"text\" id=\"name\" name=\"name\" value=\"" + name + "\" required>");
+            out.println("        <label for=\"type\">Type:</label>");
+            out.println("        <input type=\"text\" id=\"type\" name=\"type\" value=\"" + type + "\" required>");
+            out.println("        <label for=\"price\">Price:</label>");
+            out.println("        <input type=\"number\" id=\"price\" name=\"price\" value=\"" + price + "\" required>");
+            out.println("        <input type=\"hidden\" name=\"id\" value=\"" + id + "\">");
+            out.println("        <button type=\"submit\">Update Component</button>");
+            out.println("        <input type=\"hidden\" name=\"action\" value=\"update\">");
+            out.println("    </form>");
+            out.println("</body>");
+            out.println("</html>");
+        }
+        rs.close();
+        pstmt.close();
+    }
+
+    private void listComponents(Connection conn, PrintWriter out) throws SQLException {
+        String sql = "SELECT id, name, type, price FROM components";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        ResultSet rs = pstmt.executeQuery();
+
+        List<Component> components = new ArrayList<>();
+        while (rs.next()) {
+            Component component = new Component();
+            component.setId(rs.getInt("id"));
+            component.setName(rs.getString("name"));
+            component.setType(rs.getString("type"));
+            component.setPrice(rs.getDouble("price"));
+            components.add(component);
+        }
+
+        out.println("<!DOCTYPE html>");
+        out.println("<html lang=\"en\">");
+        out.println("<head>");
+        out.println("    <meta charset=\"UTF-8\">");
+        out.println("    <title>Computer Components</title>");
+        out.println("    <style>");
+        out.println("        body { font-family: sans-serif; background-color: #f0f0f0; }");
+        out.println("        h1 { text-align: center; margin-top: 20px; }");
+        out.println("        table { margin: 20px auto; border-collapse: collapse; width: 80%; background-color: white; }");
+        out.println("        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }");
+        out.println("        th { background-color: #f0f0f0; }");
+        out.println("        tr:nth-child(even) { background-color: #f2f2f2; }");
+        out.println("       .actions { display: flex; gap: 10px; }");
+        out.println("       .edit-button { background-color: #008CBA; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }");
+        out.println("       .edit-button:hover { background-color: #007ba7; }");
+        out.println("       .delete-button { background-color: #f44336; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }");
+        out.println("       .delete-button:hover { background-color: #d32f2f; }");
+        out.println("       .add-button { display: block; margin: 20px auto; width: 200px; background-color: #4CAF50; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; text-align: center; text-decoration: none; }");
+        out.println("       .add-button:hover { background-color: #45a049; }");
+        out.println("    </style>");
+        out.println("</head>");
+        out.println("<body>");
+        out.println("    <h1>Computer Components</h1>");
+        out.println("    <a href=\"components?action=add\" class=\"add-button\">Add New Component</a>");
+        out.println("    <table>");
+        out.println("        <tr><th>ID</th><th>Name</th><th>Type</th><th>Price</th><th>Actions</th></tr>");
+        for (Component component : components) {
+            out.println("        <tr>");
+            out.println("            <td>" + component.getId() + "</td>");
+            out.println("            <td>" + component.getName() + "</td>");
+            out.println("            <td>" + component.getType() + "</td>");
+            out.println("            <td>$" + component.getPrice() + "</td>");
+            out.println("            <td class=\"actions\">");
+            out.println("                <a href=\"components?action=edit&id=" + component.getId() + "\" class=\"edit-button\">Edit</a>");
+            out.println("                <a href=\"components?action=delete&id=" + component.getId() + "\" class=\"delete-button\">Delete</a>");
+            out.println("            </td>");
+            out.println("        </tr>");
+        }
+        out.println("    </table>");
+        out.println("</body>");
+        out.println("</html>");
+
+        rs.close();
+        pstmt.close();
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("text/html;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+
+            String action = request.getParameter("action");
+             if (action.equals("update")) {
+                updateComponent(request, response, conn, out);
+            } else if (action.equals("create")) {
+                 createComponent(request, response, conn, out);
+            }
+
+            conn.close();
+
+        } catch (ClassNotFoundException | SQLException e) {
+            out.println("<html><body>");
+            out.println("<h1>Error</h1>");
+            out.println("<p>Error: " + e.getMessage() + "</p>");
+            out.println("</body></html>");
+        }
+    }
+
+    private void createComponent(HttpServletRequest request, HttpServletResponse response, Connection conn, PrintWriter out) throws SQLException, IOException{
+         String name = request.getParameter("name");
+        String type = request.getParameter("type");
+        double price = Double.parseDouble(request.getParameter("price"));
+
+        String sql = "INSERT INTO components (name, type, price) VALUES (?, ?, ?)";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setString(1, name);
+        pstmt.setString(2, type);
+        pstmt.setDouble(3, price);
+        pstmt.executeUpdate();
+        pstmt.close();
+        response.sendRedirect("components");
+    }
+
+    private void updateComponent(HttpServletRequest request, HttpServletResponse response, Connection conn, PrintWriter out) throws SQLException, IOException {
+        int id = Integer.parseInt(request.getParameter("id"));
+        String name = request.getParameter("name");
+        String type = request.getParameter("type");
+        double price = Double.parseDouble(request.getParameter("price"));
+
+        String sql = "UPDATE components SET name = ?, type = ?, price = ? WHERE id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setString(1, name);
+        pstmt.setString(2, type);
+        pstmt.setDouble(3, price);
+        pstmt.setInt(4, id);
+        pstmt.executeUpdate();
+        pstmt.close();
+
+        response.sendRedirect("components"); // Redirect to the main page
+    }
+
+    // Inner class to represent a Component
+    private static class Component {
+        private int id;
+        private String name;
+        private String type;
+        private double price;
+
+        public int getId() {
+            return id;
+        }
+
+        public void setId(int id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public double getPrice() {
+            return price;
+        }
+
+        public void setPrice(double price) {
+            this.price = price;
+        }
+    }
+}
+

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;MyXsltParserProject/src/main/java/com/example/servlet/XsltServer.java&apos; to &apos;XsltServlet.java&apos;" description="Rename resource &apos;XsltServer.java&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="src/main/java/com/example/servlet/XsltServer.java" name="XsltServlet.java" stamp="1745768244588" updateReferences="true"/>
+</session>

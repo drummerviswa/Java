@@ -1,0 +1,192 @@
+package com.example.servlets;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.annotation.WebServlet;
+import com.google.gson.Gson;
+
+@WebServlet("/instrumentsServlet")
+public class InstrumentServlet extends HttpServlet {
+
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/musical_instruments_db?allowPublicKeyRetrieval=true&useSSL=false";
+    private static final String DB_USER = "root";
+    private static final String DB_PASSWORD = "21679";
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        String action = request.getParameter("action");
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            if (action != null && action.equals("edit")) {
+                int id = Integer.parseInt(request.getParameter("id"));
+                sendInstrumentForEdit(id, conn, out);
+            } else if (action != null && action.equals("delete")){
+                 deleteInstrument(request,response,conn);
+            }else{
+                List<Instrument> instruments = getInstruments(conn);
+                Gson gson = new Gson();
+                String json = gson.toJson(instruments);
+                out.print(json);
+            }
+
+            conn.close();
+        } catch (ClassNotFoundException | SQLException e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            out.print("{\"error\":\"" + e.getMessage() + "\"}");
+        }
+    }
+     private List<Instrument> getInstruments(Connection conn) throws SQLException {
+        List<Instrument> instruments = new ArrayList<>();
+        String sql = "SELECT id, name, type, price FROM instruments";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        ResultSet rs = pstmt.executeQuery();
+        while (rs.next()) {
+            Instrument instrument = new Instrument();
+            instrument.setId(rs.getInt("id"));
+            instrument.setName(rs.getString("name"));
+            instrument.setType(rs.getString("type"));
+            instrument.setPrice(rs.getDouble("price"));
+            instruments.add(instrument);
+        }
+        rs.close();
+        pstmt.close();
+        return instruments;
+    }
+
+    private void sendInstrumentForEdit(int id, Connection conn, PrintWriter out) throws SQLException {
+        String sql = "SELECT id, name, type, price FROM instruments WHERE id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setInt(1, id);
+        ResultSet rs = pstmt.executeQuery();
+        rs.next();
+        Instrument instrument = new Instrument();
+        instrument.setId(rs.getInt("id"));
+        instrument.setName(rs.getString("name"));
+        instrument.setType(rs.getString("type"));
+        instrument.setPrice(rs.getDouble("price"));
+        Gson gson = new Gson();
+        String json = gson.toJson(instrument);
+        out.print(json);
+        rs.close();
+        pstmt.close();
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("text/plain");
+        PrintWriter out = response.getWriter();
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+
+            String action = request.getParameter("action");
+             if (action != null && action.equals("delete")) {
+                deleteInstrument(request, response, conn);
+            } else if (request.getParameter("id") != null) {
+                updateInstrument(request, response, conn);
+            } else {
+                createInstrument(request, response, conn);
+            }
+            conn.close();
+        } catch (ClassNotFoundException | SQLException e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            out.print("Error: " + e.getMessage());
+        }
+    }
+
+    private void createInstrument(HttpServletRequest request, HttpServletResponse response, Connection conn)
+            throws SQLException, IOException {
+        String name = request.getParameter("name");
+        String type = request.getParameter("type");
+        double price = Double.parseDouble(request.getParameter("price"));
+
+        String sql = "INSERT INTO instruments (name, type, price) VALUES (?, ?, ?)";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setString(1, name);
+        pstmt.setString(2, type);
+        pstmt.setDouble(3, price);
+        pstmt.executeUpdate();
+        pstmt.close();
+    }
+
+    private void updateInstrument(HttpServletRequest request, HttpServletResponse response, Connection conn)
+            throws SQLException, IOException {
+        int id = Integer.parseInt(request.getParameter("id"));
+        String name = request.getParameter("name");
+        String type = request.getParameter("type");
+        double price = Double.parseDouble(request.getParameter("price"));
+
+        String sql = "UPDATE instruments SET name = ?, type = ?, price = ? WHERE id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setString(1, name);
+        pstmt.setString(2, type);
+        pstmt.setDouble(3, price);
+        pstmt.setInt(4, id);
+        pstmt.executeUpdate();
+        pstmt.close();
+    }
+     private void deleteInstrument(HttpServletRequest request, HttpServletResponse response, Connection conn)
+            throws SQLException, IOException {
+        int id = Integer.parseInt(request.getParameter("id"));
+        String sql = "DELETE FROM instruments WHERE id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setInt(1, id);
+        pstmt.executeUpdate();
+        pstmt.close();
+    }
+
+    private static class Instrument {
+        private int id;
+        private String name;
+        private String type;
+        private double price;
+
+        public int getId() {
+            return id;
+        }
+
+        public void setId(int id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public double getPrice() {
+            return price;
+        }
+
+        public void setPrice(double price) {
+            this.price = price;
+        }
+    }
+}
+

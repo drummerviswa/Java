@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<components>
+    <component>
+        <id>1</id>
+        <name>CPU</name>
+        <type>Processor</type>
+        <price>300.00</price>
+    </component>
+    <component>
+        <id>2</id>
+        <name>RAM</name>
+        <type>Memory</type>
+        <price>100.00</price>
+    </component>
+    <component>
+        <id>3</id>
+        <name>SSD</name>
+        <type>Storage</type>
+        <price>150.00</price>
+    </component>
+    <component>
+        <id>4</id>
+        <name>Motherboard</name>
+        <type>Mainboard</type>
+        <price>200.00</price>
+    </component>
+</components>

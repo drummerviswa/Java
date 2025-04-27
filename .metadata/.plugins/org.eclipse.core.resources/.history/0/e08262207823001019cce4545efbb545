@@ -1,0 +1,137 @@
+package com.example.servlets;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+public class ComponentServlet extends HttpServlet {
+
+    // Database connection details
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/computer_components_db";
+    private static final String DB_USER = "viswa";
+    private static final String DB_PASSWORD = "21679";  // Change this if you have set a password for your MySQL root user
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("text/html;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+
+        try {
+            // Load the MySQL JDBC driver.  This is crucial.
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            // Get a connection to the database
+            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+
+            // Create a SQL statement to select all components
+            String sql = "SELECT id, name, type, price FROM components";
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            ResultSet rs = pstmt.executeQuery();
+
+            // Store the results in a List of Component objects
+            List<Component> components = new ArrayList<>();
+            while (rs.next()) {
+                Component component = new Component();
+                component.setId(rs.getInt("id"));
+                component.setName(rs.getString("name"));
+                component.setType(rs.getString("type"));
+                component.setPrice(rs.getDouble("price"));
+                components.add(component);
+            }
+
+            // Generate the HTML table
+            out.println("<!DOCTYPE html>");
+            out.println("<html lang=\"en\">");
+            out.println("<head>");
+            out.println("    <meta charset=\"UTF-8\">");
+            out.println("    <title>Computer Components</title>");
+            out.println("    <style>");
+            out.println("        body { font-family: sans-serif; background-color: #f0f0f0; }");
+            out.println("        h1 { text-align: center; margin-top: 20px; }");
+            out.println("        table { margin: 20px auto; border-collapse: collapse; width: 80%; background-color: white; }");
+            out.println("        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }");
+            out.println("        th { background-color: #f0f0f0; }");
+            out.println("        tr:nth-child(even) {background-color: #f2f2f2;}");
+            out.println("    </style>");
+            out.println("</head>");
+            out.println("<body>");
+            out.println("    <h1>Computer Components</h1>");
+            out.println("    <table>");
+            out.println("        <tr><th>ID</th><th>Name</th><th>Type</th><th>Price</th></tr>");
+            for (Component component : components) {
+                out.println("        <tr>");
+                out.println("            <td>" + component.getId() + "</td>");
+                out.println("            <td>" + component.getName() + "</td>");
+                out.println("            <td>" + component.getType() + "</td>");
+                out.println("            <td>$" + component.getPrice() + "</td>");
+                out.println("        </tr>");
+            }
+            out.println("    </table>");
+            out.println("</body>");
+            out.println("</html>");
+
+            // Close database resources
+            rs.close();
+            pstmt.close();
+            conn.close();
+
+        } catch (ClassNotFoundException e) {
+            out.println("Error: MySQL JDBC driver not found.<br>");
+            out.println(e.getMessage());
+        } catch (SQLException e) {
+            out.println("Error: Could not connect to the database.<br>");
+            out.println(e.getMessage());
+        } finally {
+            out.close();
+        }
+    }
+
+    // Inner class to represent a Component.  This makes the code cleaner.
+    private static class Component {
+        private int id;
+        private String name;
+        private String type;
+        private double price;
+
+        public int getId() {
+            return id;
+        }
+
+        public void setId(int id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public double getPrice() {
+            return price;
+        }
+
+        public void setPrice(double price) {
+            this.price = price;
+        }
+    }
+}

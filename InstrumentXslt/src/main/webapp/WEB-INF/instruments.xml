@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<instruments>
+    <instrument>
+        <id>1</id>
+        <name>Guitar</name>
+        <type>String</type>
+        <price>700.00</price>
+    </instrument>
+    <instrument>
+        <id>2</id>
+        <name>Piano</name>
+        <type>Keyboard</type>
+        <price>1200.00</price>
+    </instrument>
+    <instrument>
+        <id>3</id>
+        <name>Drum Set</name>
+        <type>Percussion</type>
+        <price>900.00</price>
+    </instrument>
+    <instrument>
+        <id>4</id>
+        <name>Violin</name>
+        <type>String</type>
+        <price>800.00</price>
+    </instrument>
+</instruments>

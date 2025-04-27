@@ -1,0 +1,443 @@
+package com.example.servlets;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.annotation.WebServlet;
+
+@WebServlet("/instrumentsServlet")
+public class InstrumentServlet extends HttpServlet {
+
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/musical_instruments_db?allowPublicKeyRetrieval=true&useSSL=false";
+    private static final String DB_USER = "root";
+    private static final String DB_PASSWORD = "21679";
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("text/html;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        String action = request.getParameter("action");
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            if (action != null && action.equals("edit")) {
+                int id = Integer.parseInt(request.getParameter("id"));
+                sendInstrumentForEdit(id, conn, out);
+            } else if (action != null && action.equals("delete")) {
+                deleteInstrument(request, response, conn, response); // Pass response
+            } else {
+                displayInstruments(conn, out);
+            }
+            conn.close();
+        } catch (ClassNotFoundException | SQLException e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            out.print("Error: " + e.getMessage());
+        }
+    }
+
+    private void displayInstruments(Connection conn, PrintWriter out) throws SQLException {
+        List<Instrument> instruments = getInstruments(conn);
+        out.println("<!DOCTYPE html>");
+        out.println("<html lang=\"en\">");
+        out.println("<head>");
+        out.println("    <meta charset=\"UTF-8\">");
+        out.println("    <title>Musical Instruments</title>");
+        out.println("    <style>");
+        out.println("        body {");
+        out.println("            font-family: Arial, sans-serif;");
+        out.println("            margin: 0;");
+        out.println("            padding: 0;");
+        out.println("            background-color: #f4f4f4;");
+        out.println("        }");
+        out.println("        .container {");
+        out.println("            max-width: 800px;");
+        out.println("            margin: 20px auto;");
+        out.println("            padding: 20px;");
+        out.println("            background-color: #fff;");
+        out.println("            border-radius: 8px;");
+        out.println("            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);");
+        out.println("        }");
+        out.println("        h1 {");
+        out.println("            text-align: center;");
+        out.println("        }");
+        out.println("        table {");
+        out.println("            width: 100%;");
+        out.println("            border-collapse: collapse;");
+        out.println("            margin-top: 20px;");
+        out.println("        }");
+        out.println("        th, td {");
+        out.println("            padding: 8px;");
+        out.println("            border-bottom: 1px solid #ddd;");
+        out.println("            text-align: left;");
+        out.println("        }");
+        out.println("        th {");
+        out.println("            background-color: #f0f0f0;");
+        out.println("        }");
+        out.println("        tr:hover {");
+        out.println("            background-color: #f5f5f5;");
+        out.println("        }");
+        out.println("        form {");
+        out.println("            margin-top: 20px;");
+        out.println("            display: flex;");
+        out.println("            flex-direction: column;");
+        out.println("        }");
+        out.println("        label {");
+        out.println("            margin-bottom: 5px;");
+        out.println("        }");
+        out.println("        input[type=\"text\"], input[type=\"number\"] {");
+        out.println("            padding: 8px;");
+        out.println("            margin-bottom: 10px;");
+        out.println("            border: 1px solid #ddd;");
+        out.println("            border-radius: 4px;");
+        out.println("        }");
+        out.println("        button {");
+        out.println("            padding: 10px 20px;");
+        out.println("            background-color: #4CAF50;");
+        out.println("            color: white;");
+        out.println("            border: none;");
+        out.println("            border-radius: 4px;");
+        out.println("            cursor: pointer;");
+        out.println("            align-self: center;");
+        out.println("            margin-top: 10px;");
+        out.println("        }");
+        out.println("        button:hover {");
+        out.println("            background-color: #45a049;");
+        out.println("        }");
+        out.println("        .actions {");
+        out.println("            display: flex;");
+        out.println("            gap: 10px;");
+        out.println("        }");
+        out.println("        .edit-btn {");
+        out.println("            background-color: #008CBA;");
+        out.println("        }");
+        out.println("        .edit-btn:hover {");
+        out.println("            background-color: #007ba7;");
+        out.println("        }");
+        out.println("       .delete-btn {");
+        out.println("            background-color: #af4c4c;");
+        out.println("        }");
+        out.println("        .delete-btn:hover {");
+        out.println("            background-color: #a33d3d;");
+        out.println("        }");
+        out.println("    </style>");
+        out.println("</head>");
+        out.println("<body>");
+        out.println("<div class=\"container\">");
+        out.println("<h1>Musical Instruments</h1>");
+        out.println("<table id=\"instrumentTable\">");
+        out.println("<tr><th>ID</th><th>Name</th><th>Type</th><th>Price</th><th>Actions</th></tr>");
+        for (Instrument instrument : instruments) {
+            out.println("<tr>");
+            out.println("<td>" + instrument.getId() + "</td>");
+            out.println("<td>" + instrument.getName() + "</td>");
+            out.println("<td>" + instrument.getType() + "</td>");
+            out.println("<td>" + instrument.getPrice() + "</td>");
+            out.println("<td class=\"actions\">");
+            out.println("    <button class=\"edit-btn\" onclick=\"editInstrument(" + instrument.getId() + ")\">Edit</button>");
+            out.println("    <button class=\"delete-btn\" onclick=\"deleteInstrument(" + instrument.getId() + ")\">Delete</button>");
+            out.println("</td>");
+            out.println("</tr>");
+        }
+        out.println("</table>");
+        out.println("<h2>Add Instrument</h2>");
+        out.println("<form id=\"addInstrumentForm\"  method=\"post\">");
+        out.println("<label for=\"name\">Name:</label>");
+        out.println("<input type=\"text\" id=\"name\" name=\"name\" required>");
+        out.println("<label for=\"type\">Type:</label>");
+        out.println("<input type=\"text\" id=\"type\" name=\"type\" required>");
+        out.println("<label for=\"price\">Price:</label>");
+        out.println("<input type=\"number\" id=\"price\" name=\"price\" required>");
+        out.println("<button type=\"submit\">Add Instrument</button>");
+        out.println("</form>");
+        out.println("</div>");
+        out.println("<script>");
+        out.println("function editInstrument(id) {");
+        out.println("    window.location.href = 'instrumentsServlet?action=edit&id=' + id;");
+        out.println("}");
+
+        out.println("function deleteInstrument(id) {");
+        out.println("    if (confirm('Are you sure you want to delete this instrument?')) {");
+        out.println("        var xhr = new XMLHttpRequest();");
+        out.println("        xhr.open('GET', 'instrumentsServlet?action=delete&id=' + id, true);");
+        out.println("        xhr.onload = function() {");
+        out.println("            if (xhr.status === 200) {");
+        out.println("                alert('Instrument deleted successfully!');");
+        out.println("                window.location.href = 'instrumentsServlet';");
+        out.println("            } else {");
+        out.println("                alert('Error deleting instrument: ' + xhr.responseText);");
+        out.println("            }");
+        out.println("        };");
+        out.println("        xhr.send();");
+        out.println("    }");
+        out.println("}");
+
+        out.println("document.getElementById('addInstrumentForm').addEventListener('submit', function(event) {");
+        out.println("    event.preventDefault();");
+        out.println("    var name = document.getElementById('name').value;");
+        out.println("    var type = document.getElementById('type').value;");
+        out.println("    var price = document.getElementById('price').value;");
+        out.println("    var xhr = new XMLHttpRequest();");
+        out.println("    xhr.open('POST', 'instrumentsServlet', true);");
+        out.println("    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');");
+        out.println("    xhr.onload = function() {");
+        out.println("        if (xhr.status === 200) {");
+        out.println("            alert('Instrument added successfully!');");
+        out.println("            window.location.href = 'instrumentsServlet';");
+        out.println("        } else {");
+        out.println("            alert('Error adding instrument: ' + xhr.responseText);");
+        out.println("        }");
+        out.println("    };");
+        out.println("    var data = 'name=' + encodeURIComponent(name) + '&type=' + encodeURIComponent(type) + '&price=' + encodeURIComponent(price);");
+        out.println("    xhr.send(data);");
+        out.println("});");
+        out.println("</script>");
+        out.println("</body>");
+        out.println("</html>");
+    }
+    private List<Instrument> getInstruments(Connection conn) throws SQLException {
+        List<Instrument> instruments = new ArrayList<>();
+        String sql = "SELECT id, name, type, price FROM instruments";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        ResultSet rs = pstmt.executeQuery();
+        while (rs.next()) {
+            Instrument instrument = new Instrument();
+            instrument.setId(rs.getInt("id"));
+            instrument.setName(rs.getString("name"));
+            instrument.setType(rs.getString("type"));
+            instrument.setPrice(rs.getDouble("price"));
+            instruments.add(instrument);
+        }
+        rs.close();
+        pstmt.close();
+        return instruments;
+    }
+
+    private void sendInstrumentForEdit(int id, Connection conn, PrintWriter out) throws SQLException {
+        String sql = "SELECT id, name, type, price FROM instruments WHERE id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setInt(1, id);
+        ResultSet rs = pstmt.executeQuery();
+        rs.next();
+        Instrument instrument = new Instrument();
+        instrument.setId(rs.getInt("id"));
+        instrument.setName(rs.getString("name"));
+        instrument.setType(rs.getString("type"));
+        instrument.setPrice(rs.getDouble("price"));
+        out.print("<!DOCTYPE html>");
+        out.println("<html lang=\"en\">");
+        out.println("<head>");
+        out.println("    <meta charset=\"UTF-8\">");
+        out.println("    <title>Edit Instrument</title>");
+        out.println("    <style>");
+        out.println("        body {");
+        out.println("            font-family: Arial, sans-serif;");
+        out.println("            margin: 0;");
+        out.println("            padding: 0;");
+        out.println("            background-color: #f4f4f4;");
+        out.println("        }");
+        out.println("        .container {");
+        out.println("            max-width: 800px;");
+        out.println("            margin: 20px auto;");
+        out.println("            padding: 20px;");
+        out.println("            background-color: #fff;");
+        out.println("            border-radius: 8px;");
+        out.println("            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);");
+        out.println("        }");
+        out.println("        h1 {");
+        out.println("            text-align: center;");
+        out.println("        }");
+        out.println("        form {");
+        out.println("            margin-top: 20px;");
+        out.println("            display: flex;");
+        out.println("            flex-direction: column;");
+        out.println("        }");
+        out.println("        label {");
+        out.println("            margin-bottom: 5px;");
+        out.println("        }");
+        out.println("        input[type=\"text\"], input[type=\"number\"] {");
+        out.println("            padding: 8px;");
+        out.println("            margin-bottom: 10px;");
+        out.println("            border: 1px solid #ddd;");
+        out.println("            border-radius: 4px;");
+        out.println("        }");
+        out.println("        button {");
+        out.println("            padding: 10px 20px;");
+        out.println("            background-color: #4CAF50;");
+        out.println("            color: white;");
+        out.println("            border: none;");
+        out.println("            border-radius: 4px;");
+        out.println("            cursor: pointer;");
+        out.println("            align-self: center;");
+        out.println("        }");
+        out.println("        button:hover {");
+        out.println("            background-color: #45a049;");
+        out.println("        }");
+        out.println("    </style>");
+        out.println("</head>");
+        out.println("<body>");
+        out.println("<div class=\"container\">");
+        out.println("<h1>Edit Instrument</h1>");
+        out.println("<form id=\"editInstrumentForm\" method=\"post\">");
+        out.println("<label for=\"name\">Name:</label>");
+        out.println("<input type=\"text\" id=\"name\" name=\"name\" value=\"" + instrument.getName() + "\" required>");
+        out.println("<label for=\"type\">Type:</label>");
+        out.println("<input type=\"text\" id=\"type\" name=\"type\" value=\"" + instrument.getType() + "\" required>");
+        out.println("<label for=\"price\">Price:</label>");
+        out.println("<input type=\"number\" id=\"price\" name=\"price\" value=\"" + instrument.getPrice() + "\" required>");
+        out.println("<input type=\"hidden\" id=\"id\" name=\"id\" value=\"" + instrument.getId() + "\">");
+        out.println("<button type=\"submit\">Update Instrument</button>");
+        out.println("</form>");
+        out.println("<script>");
+        out.println("document.getElementById('editInstrumentForm').addEventListener('submit', function(event) {");
+        out.println("  event.preventDefault();");
+        out.println("  var id = document.getElementById('id').value;");
+        out.println("  var name = document.getElementById('name').value;");
+        out.println("  var type = document.getElementById('type').value;");
+        out.println("  var price = document.getElementById('price').value;");
+        out.println("  var xhr = new XMLHttpRequest();");
+        out.println("  xhr.open('POST', 'instrumentsServlet?id=' + id, true);");
+        out.println("  xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');");
+        out.println("  xhr.onload = function () {");
+        out.println("    if (xhr.status === 200) {");
+        out.println("      alert('Instrument updated successfully!');");
+        out.println("      window.location.href = 'instrumentsServlet';");
+        out.println("    } else {");
+        out.println("      alert('Error updating instrument: ' + xhr.responseText);");
+        out.println("    }");
+        out.println("  };");
+        out.println("  var data = 'name=' + encodeURIComponent(name) + '&type=' + encodeURIComponent(type) + '&price=' + encodeURIComponent(price);");
+        out.println("  xhr.send(data);");
+        out.println("});");
+        out.println("</script>");
+        out.println("</div>");
+        out.println("</body>");
+        out.println("</html>");
+        rs.close();
+        pstmt.close();
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("text/plain");
+        PrintWriter out = response.getWriter();
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+
+            String action = request.getParameter("action");
+            if (action != null && action.equals("delete")) {
+                deleteInstrument(request, response, conn, response);
+            } else if (request.getParameter("id") != null) {
+                updateInstrument(request, response, conn);
+            } else {
+                createInstrument(request, response, conn);
+            }
+            conn.close();
+        } catch (ClassNotFoundException | SQLException e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            out.print("Error: " + e.getMessage());
+        }
+    }
+
+    private void createInstrument(HttpServletRequest request, HttpServletResponse response, Connection conn)
+            throws SQLException, IOException {
+        String name = request.getParameter("name");
+        String type = request.getParameter("type");
+        double price = Double.parseDouble(request.getParameter("price"));
+
+        String sql = "INSERT INTO instruments (name, type, price) VALUES (?, ?, ?)";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setString(1, name);
+        pstmt.setString(2, type);
+        pstmt.setDouble(3, price);
+        pstmt.executeUpdate();
+        pstmt.close();
+        response.getWriter().print("Instrument added successfully!");
+    }
+
+    private void updateInstrument(HttpServletRequest request, HttpServletResponse response, Connection conn)
+            throws SQLException, IOException {
+        int id = Integer.parseInt(request.getParameter("id"));
+        String name = request.getParameter("name");
+        String type = request.getParameter("type");
+        double price = Double.parseDouble(request.getParameter("price"));
+
+        String sql = "UPDATE instruments SET name = ?, type = ?, price = ? WHERE id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setString(1, name);
+        pstmt.setString(2, type);
+        pstmt.setDouble(3, price);
+        pstmt.setInt(4, id);
+        pstmt.executeUpdate();
+        pstmt.close();
+        response.getWriter().print("Instrument updated successfully!");
+    }
+
+    private void deleteInstrument(HttpServletRequest request, HttpServletResponse response, Connection conn, HttpServletResponse actualResponse)
+            throws SQLException, IOException {
+        int id = Integer.parseInt(request.getParameter("id"));
+        String sql = "DELETE FROM instruments WHERE id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setInt(1, id);
+        int rowsDeleted = pstmt.executeUpdate();
+        pstmt.close();
+        if (rowsDeleted > 0) {
+            actualResponse.getWriter().print("Instrument deleted successfully!");
+        } else {
+            actualResponse.getWriter().print("Instrument not found!");
+            actualResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        }
+
+    }
+
+    private static class Instrument {
+        private int id;
+        private String name;
+        private String type;
+        private double price;
+
+        public int getId() {
+            return id;
+        }
+
+        public void setId(int id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public double getPrice() {
+            return price;
+        }
+
+        public void setPrice(double price) {
+            this.price = price;
+        }
+    }
+}
+
